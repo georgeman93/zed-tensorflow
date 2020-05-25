@@ -1,3 +1,4 @@
+# Adapted by George O'Connor
 import numpy as np
 import os
 import six.moves.urllib as urllib
