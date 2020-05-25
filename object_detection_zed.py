@@ -237,7 +237,7 @@ def main(args):
 
     # Start a video feed to capture the output with boxes drawn
     width, height, layers = image_np_global.shape
-    video = cv2.VideoWriter('video.avi',-1,1,(width,height))
+    video = cv2.VideoWriter('video.avi',cv2.VideoWriter_fourcc(*'DIVX'),1,(width,height))
 
     # Detection
     with detection_graph.as_default():
