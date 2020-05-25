@@ -244,50 +244,54 @@ def main(args):
         with tf.Session(config=config, graph=detection_graph) as sess:
 
             while not exit_signal:
-                # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
-                if new_data:
-                    lock.acquire()
-                    image_np = np.copy(image_np_global)
-                    depth_np = np.copy(depth_np_global)
-                    new_data = False
-                    lock.release()
+                try:
+                    # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+                    if new_data:
+                        lock.acquire()
+                        image_np = np.copy(image_np_global)
+                        depth_np = np.copy(depth_np_global)
+                        new_data = False
+                        lock.release()
 
-                    image_np_expanded = np.expand_dims(image_np, axis=0)
+                        image_np_expanded = np.expand_dims(image_np, axis=0)
 
-                    image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
-                    # Each box represents a part of the image where a particular object was detected.
-                    boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
-                    # Each score represent how level of confidence for each of the objects.
-                    # Score is shown on the result image, together with the class label.
-                    scores = detection_graph.get_tensor_by_name('detection_scores:0')
-                    classes = detection_graph.get_tensor_by_name('detection_classes:0')
-                    num_detections = detection_graph.get_tensor_by_name('num_detections:0')
-                    # Actual detection.
-                    (boxes, scores, classes, num_detections) = sess.run(
-                        [boxes, scores, classes, num_detections],
-                        feed_dict={image_tensor: image_np_expanded})
+                        image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+                        # Each box represents a part of the image where a particular object was detected.
+                        boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
+                        # Each score represent how level of confidence for each of the objects.
+                        # Score is shown on the result image, together with the class label.
+                        scores = detection_graph.get_tensor_by_name('detection_scores:0')
+                        classes = detection_graph.get_tensor_by_name('detection_classes:0')
+                        num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+                        # Actual detection.
+                        (boxes, scores, classes, num_detections) = sess.run(
+                            [boxes, scores, classes, num_detections],
+                            feed_dict={image_tensor: image_np_expanded})
 
-                    num_detections_ = num_detections.astype(int)[0]
+                        num_detections_ = num_detections.astype(int)[0]
 
-                    # Visualization of the results of a detection.
-                    image_np = display_objects_distances(
-                        image_np,
-                        depth_np,
-                        num_detections_,
-                        np.squeeze(boxes),
-                        np.squeeze(classes).astype(np.int32),
-                        np.squeeze(scores),
-                        category_index)
+                        # Visualization of the results of a detection.
+                        image_np = display_objects_distances(
+                            image_np,
+                            depth_np,
+                            num_detections_,
+                            np.squeeze(boxes),
+                            np.squeeze(classes).astype(np.int32),
+                            np.squeeze(scores),
+                            category_index)
 
-                    #cv2.imshow('ZED object detection', cv2.resize(image_np, (width, height)))
-                    video.write(cv2.resize(image_np, (width, height)))
+                        #cv2.imshow('ZED object detection', cv2.resize(image_np, (width, height)))
+                        video.write(cv2.resize(image_np, (width, height)))
 
-                    if cv2.waitKey(10) & 0xFF == ord('q'):
-                        cv2.destroyAllWindows()
-                        video.release()
-                        exit_signal = True
-                else:
-                    sleep(0.01)
+                        if cv2.waitKey(10) & 0xFF == ord('q'):
+                            cv2.destroyAllWindows()
+                            video.release()
+                            exit_signal = True
+                    else:
+                        sleep(0.01)
+                except KeyboardInterrupt:
+                    print("saving video")
+                    video.release()
 
             sess.close()
             video.release()
