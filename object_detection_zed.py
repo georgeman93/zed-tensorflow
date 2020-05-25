@@ -235,9 +235,14 @@ def main(args):
                                                                 use_display_name=True)
     category_index = label_map_util.create_category_index(categories)
 
+    # Start a video feed to capture the output with boxes drawn
+    width, height, layers = image_np_global.shape
+    video = cv2.VideoWriter('video.avi',-1,1,(width,height))
+
     # Detection
     with detection_graph.as_default():
         with tf.Session(config=config, graph=detection_graph) as sess:
+
             while not exit_signal:
                 # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
                 if new_data:
@@ -274,14 +279,18 @@ def main(args):
                         np.squeeze(scores),
                         category_index)
 
-                    cv2.imshow('ZED object detection', cv2.resize(image_np, (width, height)))
+                    #cv2.imshow('ZED object detection', cv2.resize(image_np, (width, height)))
+                    video.write(cv2.resize(image_np, (width, height)))
+
                     if cv2.waitKey(10) & 0xFF == ord('q'):
                         cv2.destroyAllWindows()
+                        video.release()
                         exit_signal = True
                 else:
                     sleep(0.01)
 
             sess.close()
+            video.release()
 
     exit_signal = True
     capture_thread.join()
