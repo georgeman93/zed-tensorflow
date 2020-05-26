@@ -1,4 +1,7 @@
 # Adapted by George O'Connor
+# New functionaility is
+# - uses TensorRT optimised graphs
+# - saves the video output to a file instead of rendering on screen
 import numpy as np
 import os
 import six.moves.urllib as urllib
@@ -24,6 +27,12 @@ sys.path.append('utils')
 from object_detection.utils import ops as utils_ops
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
+
+# TensorRT imports
+from tf_trt_models.classification import download_classification_checkpoint
+from tf_trt_models.classification import build_classification_graph
+import tensorflow.contrib.tensorrt as trt
+
 
 
 def load_image_into_numpy_array(image):
@@ -177,12 +186,15 @@ def main(args):
 
     # This main thread will run the object detection, the capture thread is loaded later
 
-    # What model to download and load
+    # What tensorflow model to download and load
     MODEL_NAME = 'ssd_mobilenet_v1_coco_2018_01_28'
     #MODEL_NAME = 'ssd_mobilenet_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03'
     #MODEL_NAME = 'ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03'
     #MODEL_NAME = 'ssd_mobilenet_v1_coco_2018_01_28'
     #MODEL_NAME = 'faster_rcnn_nas_coco_2018_01_28' # Accurate but heavy
+
+    # What tensorRT model to download and load
+    TRT_MODEL_NAME = 'mobilenet_v1_1p0_224'
 
     # Path to frozen detection graph. This is the actual model that is used for the object detection.
     PATH_TO_FROZEN_GRAPH = 'data/' + MODEL_NAME + '/frozen_inference_graph.pb'
@@ -214,15 +226,35 @@ def main(args):
     # Shared resources
     global image_np_global, depth_np_global, new_data, exit_signal
 
-    # Load a (frozen) Tensorflow model into memory.
-    print("Loading model " + MODEL_NAME)
     detection_graph = tf.Graph()
-    with detection_graph.as_default():
-        od_graph_def = tf.GraphDef()
-        with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
-            serialized_graph = fid.read()
-            od_graph_def.ParseFromString(serialized_graph)
-            tf.import_graph_def(od_graph_def, name='')
+    if not usingTensorRTOptimisation: # Load a (frozen) Tensorflow model into memory.
+        print("Loading model " + MODEL_NAME)
+        with detection_graph.as_default():
+            od_graph_def = tf.GraphDef()
+            with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
+                serialized_graph = fid.read()
+                od_graph_def.ParseFromString(serialized_graph)
+                tf.import_graph_def(od_graph_def, name='')
+
+    else:
+        print("Loading TensorRT model " + TRT_MODEL_NAME)
+        checkpoint_path = download_classification_checkpoint(TRT_MODEL_NAME)
+        frozen_graph, input_names, output_names = build_classification_graph(
+            model=TRT_MODEL_NAME,
+            checkpoint=checkpoint_path,
+            num_classes=1001
+        )
+        trt_graph = trt.create_inference_graph(
+            input_graph_def=frozen_graph,
+            outputs=output_names,
+            max_batch_size=1,
+            max_workspace_size_bytes=1 << 25,
+            precision_mode='FP16',
+            minimum_segment_size=50
+        )
+        tf.import_graph_def(trt_graph, name='')
+
+    
 
     # Limit to a maximum of 50% the GPU memory usage taken by TF https://www.tensorflow.org/guide/using_gpu
     config = tf.ConfigProto()
@@ -235,8 +267,6 @@ def main(args):
                                                                 use_display_name=True)
     category_index = label_map_util.create_category_index(categories)
 
-    # Start a video feed to capture the output with boxes drawn
-    width, height, layers = image_np_global.shape
     video = cv2.VideoWriter('video.avi',cv2.VideoWriter_fourcc(*'DIVX'),1,(width,height))
 
     # Detection
