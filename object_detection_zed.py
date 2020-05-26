@@ -249,11 +249,15 @@ def main(args):
             with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
-                converter = trt.TrtGraphConverter(
-                    input_graph_def=od_graph_def,
-                    nodes_blacklist=['logits', 'classes'])
-                od_graph_def = converter.convert()
-                tf.import_graph_def(od_graph_def, name='')
+                trt_graph = trt.create_inference_graph(
+                    input_graph_def=frozen_graph,
+                    outputs=output_names,
+                    max_batch_size=1,
+                    max_workspace_size_bytes=1 << 25,
+                    precision_mode='FP16',
+                    minimum_segment_size=50
+                )
+                tf.import_graph_def(trt_graph, name='')
         #checkpoint_path = download_classification_checkpoint(TRT_MODEL_NAME)
         # config_path, checkpoint_path = download_model(TRT_MODEL_NAME, output_dir='models')
         # frozen_graph, input_names, output_names = build_classification_graph(
