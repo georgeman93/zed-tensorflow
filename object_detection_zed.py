@@ -28,11 +28,14 @@ from object_detection.utils import ops as utils_ops
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
-# TensorRT imports
-from tf_trt_models.classification import download_classification_checkpoint
-from tf_trt_models.classification import build_classification_graph
-import tensorflow.contrib.tensorrt as trt
+# TensorRT imports #5.0
+# from tf_trt_models.classification import download_classification_checkpoint
+# from tf_trt_models.classification import build_classification_graph
+# import tensorflow.contrib.tensorrt as trt
 
+# TensorRT imports #5.1.6
+from tftrt.examples.object_detection import download_model
+from tftrt.examples.object_detection import optimize_model
 
 
 def load_image_into_numpy_array(image):
@@ -195,7 +198,7 @@ def main(args):
     #MODEL_NAME = 'faster_rcnn_nas_coco_2018_01_28' # Accurate but heavy
 
     # What tensorRT model to download and load
-    TRT_MODEL_NAME = 'mobilenet_v1_1p0_224'
+    TRT_MODEL_NAME = 'ssd_mobilenet_v1_coco'
 
     # Path to frozen detection graph. This is the actual model that is used for the object detection.
     PATH_TO_FROZEN_GRAPH = 'data/' + MODEL_NAME + '/frozen_inference_graph.pb'
@@ -239,20 +242,27 @@ def main(args):
 
     else:
         print("Loading TensorRT model " + TRT_MODEL_NAME)
-        checkpoint_path = download_classification_checkpoint(TRT_MODEL_NAME)
-        frozen_graph, input_names, output_names = build_classification_graph(
-            model=TRT_MODEL_NAME,
-            checkpoint=checkpoint_path,
-            num_classes=1001
+        #checkpoint_path = download_classification_checkpoint(TRT_MODEL_NAME)
+        config_path, checkpoint_path = download_model('TRT_MODEL_NAME', output_dir='models')
+        # frozen_graph, input_names, output_names = build_classification_graph(
+        #     model=TRT_MODEL_NAME,
+        #     checkpoint=checkpoint_path,
+        #     num_classes=1001
+        # )
+        trt_graph = optimize_model(
+            config_path=config_path, 
+            checkpoint_path=checkpoint_path,
+            use_trt=True,
+            precision_mode='FP16'
         )
-        trt_graph = trt.create_inference_graph(
-            input_graph_def=frozen_graph,
-            outputs=output_names,
-            max_batch_size=1,
-            max_workspace_size_bytes=1 << 25,
-            precision_mode='FP16',
-            minimum_segment_size=50
-        )
+        # trt_graph = trt.create_inference_graph(
+        #     input_graph_def=frozen_graph,
+        #     outputs=output_names,
+        #     max_batch_size=1,
+        #     max_workspace_size_bytes=1 << 25,
+        #     precision_mode='FP16',
+        #     minimum_segment_size=50
+        # )
         tf.import_graph_def(trt_graph, name='')
 
     
