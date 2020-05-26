@@ -37,6 +37,8 @@ from object_detection.utils import visualization_utils as vis_util
 from tftrt.examples.object_detection import download_model
 from tftrt.examples.object_detection import optimize_model
 
+import tensorflow.contrib.tensorrt as trt
+
 
 def load_image_into_numpy_array(image):
     ar = image.get_data()
