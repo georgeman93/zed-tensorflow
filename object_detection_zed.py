@@ -250,7 +250,7 @@ def main(args):
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 trt_graph = trt.create_inference_graph(
-                    input_graph_def=frozen_graph,
+                    input_graph_def=od_graph_def,
                     outputs=output_names,
                     max_batch_size=1,
                     max_workspace_size_bytes=1 << 25,
