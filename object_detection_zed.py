@@ -31,6 +31,7 @@ from object_detection.utils import visualization_utils as vis_util
 # TensorRT imports #5.0
 from tf_trt_models.classification import download_classification_checkpoint
 from tf_trt_models.classification import build_classification_graph
+from tf_trt_models.detection import download_detection_model, build_detection_graph
 import tensorflow.contrib.tensorrt as trt
 
 # TensorRT imports #5.1.6
