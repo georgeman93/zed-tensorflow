@@ -363,6 +363,7 @@ def main(args):
 
                         #cv2.imshow('ZED object detection', cv2.resize(image_np, (width, height)))
                         video.write(cv2.resize(image_np, (width, height)))
+                        print("Frame written")
 
                         if cv2.waitKey(10) & 0xFF == ord('q'):
                             cv2.destroyAllWindows()
