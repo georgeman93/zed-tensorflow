@@ -250,7 +250,7 @@ def main(args):
             with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
-                for node in od_graph_def.node
+                for node in od_graph_def.node:
                     print(node.name)
                 trt_graph = trt.create_inference_graph(
                     input_graph_def=od_graph_def,
