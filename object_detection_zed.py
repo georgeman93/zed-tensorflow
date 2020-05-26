@@ -228,6 +228,7 @@ def main(args):
     # Start the capture thread with the ZED input
     print("Starting the ZED")
     capture_thread = Thread(target=capture_thread_func, kwargs={'svo_filepath': svo_filepath})
+    capture_thread.daemon = True # so exiting the main thread cleans up these as well
     capture_thread.start()
     # Shared resources
     global image_np_global, depth_np_global, new_data, exit_signal
@@ -249,6 +250,8 @@ def main(args):
             with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
+                for node in od_graph_def.node
+                    print(node.name)
                 trt_graph = trt.create_inference_graph(
                     input_graph_def=od_graph_def,
                     outputs=output_names,
