@@ -191,9 +191,9 @@ def main(args):
     # This main thread will run the object detection, the capture thread is loaded later
 
     # What tensorflow model to download and load
-    #MODEL_NAME = 'ssd_mobilenet_v1_coco_2018_01_28'
+    MODEL_NAME = 'ssd_mobilenet_v1_coco_2018_01_28'
     #MODEL_NAME = 'ssd_mobilenet_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03'
-    MODEL_NAME = 'ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03'
+    #MODEL_NAME = 'ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03'
     #MODEL_NAME = 'ssd_mobilenet_v1_coco_2018_01_28'
     #MODEL_NAME = 'faster_rcnn_nas_coco_2018_01_28' # Accurate but heavy
 
