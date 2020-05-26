@@ -32,7 +32,8 @@ from object_detection.utils import visualization_utils as vis_util
 from tf_trt_models.classification import download_classification_checkpoint
 from tf_trt_models.classification import build_classification_graph
 from tf_trt_models.detection import download_detection_model, build_detection_graph
-import tensorflow.contrib.tensorrt as trt
+#import tensorflow.contrib.tensorrt as trt
+import tensorrt as trt
 
 # TensorRT imports #5.1.6
 # from tftrt.examples.object_detection import download_model
@@ -254,7 +255,7 @@ def main(args):
             batch_size=1
         )
 
-        print(output_names)
+        #print(output_names)
 
         trt_graph = trt.create_inference_graph(
             input_graph_def=frozen_graph,
@@ -335,7 +336,7 @@ def main(args):
 
                         image_np_expanded = np.expand_dims(image_np, axis=0)
 
-                        image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+                        image_tensor = detection_graph.get_tensor_by_name(input_names[0] + ':0')
                         # Each box represents a part of the image where a particular object was detected.
                         boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
                         # Each score represent how level of confidence for each of the objects.
