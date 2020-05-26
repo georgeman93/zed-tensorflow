@@ -59,6 +59,7 @@ depth_np_global = np.zeros([width, height, 4], dtype=np.float)
 
 exit_signal = False
 new_data = False
+usingTensorRTOptimisation = True
 
 
 # ZED image capture thread function
