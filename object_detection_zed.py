@@ -244,23 +244,43 @@ def main(args):
                 tf.import_graph_def(od_graph_def, name='')
 
     else:
-        print("Loading model " + MODEL_NAME)
-        with detection_graph.as_default():
-            od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
-                serialized_graph = fid.read()
-                od_graph_def.ParseFromString(serialized_graph)
-                for node in od_graph_def.node:
-                    print(node.name)
-                trt_graph = trt.create_inference_graph(
-                    input_graph_def=od_graph_def,
-                    outputs=output_names,
-                    max_batch_size=1,
-                    max_workspace_size_bytes=1 << 25,
-                    precision_mode='FP16',
-                    minimum_segment_size=50
-                )
-                tf.import_graph_def(trt_graph, name='')
+        print("Loading model " + TRT_MODEL_NAME)
+
+        config_path, checkpoint_path = download_detection_model(TRT_MODEL_NAME, 'data')
+        frozen_graph, input_names, output_names = build_detection_graph(
+            config=config_path,
+            checkpoint=checkpoint_path,
+            score_threshold=0.3,
+            batch_size=1
+        )
+
+        print(output_names)
+
+        trt_graph = trt.create_inference_graph(
+            input_graph_def=frozen_graph,
+            outputs=output_names,
+            max_batch_size=1,
+            max_workspace_size_bytes=1 << 25,
+            precision_mode='FP16',
+            minimum_segment_size=50
+        )
+
+        # with detection_graph.as_default():
+        #     od_graph_def = tf.GraphDef()
+        #     with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
+        #         serialized_graph = fid.read()
+        #         od_graph_def.ParseFromString(serialized_graph)
+        #         for node in od_graph_def.node:
+        #             print(node.name)
+        #         trt_graph = trt.create_inference_graph(
+        #             input_graph_def=od_graph_def,
+        #             outputs=output_names,
+        #             max_batch_size=1,
+        #             max_workspace_size_bytes=1 << 25,
+        #             precision_mode='FP16',
+        #             minimum_segment_size=50
+        #         )
+        tf.import_graph_def(trt_graph, name='')
         #checkpoint_path = download_classification_checkpoint(TRT_MODEL_NAME)
         # config_path, checkpoint_path = download_model(TRT_MODEL_NAME, output_dir='models')
         # frozen_graph, input_names, output_names = build_classification_graph(
