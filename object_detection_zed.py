@@ -243,7 +243,7 @@ def main(args):
     else:
         print("Loading TensorRT model " + TRT_MODEL_NAME)
         #checkpoint_path = download_classification_checkpoint(TRT_MODEL_NAME)
-        config_path, checkpoint_path = download_model('TRT_MODEL_NAME', output_dir='models')
+        config_path, checkpoint_path = download_model(TRT_MODEL_NAME, output_dir='models')
         # frozen_graph, input_names, output_names = build_classification_graph(
         #     model=TRT_MODEL_NAME,
         #     checkpoint=checkpoint_path,
