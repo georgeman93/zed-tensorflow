@@ -200,7 +200,7 @@ def main(args):
     #MODEL_NAME = 'faster_rcnn_nas_coco_2018_01_28' # Accurate but heavy
 
     # What tensorRT model to download and load
-    TRT_MODEL_NAME = 'ssd_mobilenet_v1_coco'
+    TRT_MODEL_NAME = 'ssd_mobilenet_v2_coco'
 
     # Path to frozen detection graph. This is the actual model that is used for the object detection.
     PATH_TO_FROZEN_GRAPH = 'data/' + MODEL_NAME + '/frozen_inference_graph.pb'
