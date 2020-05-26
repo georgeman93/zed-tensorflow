@@ -62,7 +62,7 @@ depth_np_global = np.zeros([width, height, 4], dtype=np.float)
 
 exit_signal = False
 new_data = False
-usingTensorRTOptimisation = False
+usingTensorRTOptimisation = True
 
 
 # ZED image capture thread function
@@ -241,20 +241,30 @@ def main(args):
                 tf.import_graph_def(od_graph_def, name='')
 
     else:
-        print("Loading TensorRT model " + TRT_MODEL_NAME)
+        print("Loading model " + MODEL_NAME)
+        with detection_graph.as_default():
+            od_graph_def = tf.GraphDef()
+            with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
+                serialized_graph = fid.read()
+                od_graph_def.ParseFromString(serialized_graph)
+                converter = trt.TrtGraphConverter(
+                    input_graph_def=od_graph_def,
+                    nodes_blacklist=['logits', 'classes'])
+                od_graph_def = converter.convert()
+                tf.import_graph_def(od_graph_def, name='')
         #checkpoint_path = download_classification_checkpoint(TRT_MODEL_NAME)
-        config_path, checkpoint_path = download_model(TRT_MODEL_NAME, output_dir='models')
+        # config_path, checkpoint_path = download_model(TRT_MODEL_NAME, output_dir='models')
         # frozen_graph, input_names, output_names = build_classification_graph(
         #     model=TRT_MODEL_NAME,
         #     checkpoint=checkpoint_path,
         #     num_classes=1001
         # )
-        trt_graph = optimize_model(
-            config_path=config_path, 
-            checkpoint_path=checkpoint_path,
-            use_trt=True,
-            precision_mode='FP16'
-        )
+        # trt_graph = optimize_model(
+        #     config_path=config_path, 
+        #     checkpoint_path=checkpoint_path,
+        #     use_trt=True,
+        #     precision_mode='FP16'
+        # )
         # trt_graph = trt.create_inference_graph(
         #     input_graph_def=frozen_graph,
         #     outputs=output_names,
@@ -263,7 +273,7 @@ def main(args):
         #     precision_mode='FP16',
         #     minimum_segment_size=50
         # )
-        tf.import_graph_def(trt_graph, name='')
+        #tf.import_graph_def(trt_graph, name='')
 
     
 
