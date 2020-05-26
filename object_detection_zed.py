@@ -29,15 +29,14 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
 # TensorRT imports #5.0
-# from tf_trt_models.classification import download_classification_checkpoint
-# from tf_trt_models.classification import build_classification_graph
-# import tensorflow.contrib.tensorrt as trt
+from tf_trt_models.classification import download_classification_checkpoint
+from tf_trt_models.classification import build_classification_graph
+import tensorflow.contrib.tensorrt as trt
 
 # TensorRT imports #5.1.6
-from tftrt.examples.object_detection import download_model
-from tftrt.examples.object_detection import optimize_model
+# from tftrt.examples.object_detection import download_model
+# from tftrt.examples.object_detection import optimize_model
 
-import tensorflow.contrib.tensorrt as trt
 
 
 def load_image_into_numpy_array(image):
