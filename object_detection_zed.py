@@ -223,7 +223,7 @@ def main(args):
     TRT_MODEL_NAME = 'ssd_mobilenet_v2_coco'
     TRTDIR = 'data/' + TRT_MODEL_NAME
     TRTFILENAME = '/frozen_inference_graph.pb'
-    PATH_TO_FROZEN_TRTGRAPH = DIR + FILENAME
+    PATH_TO_FROZEN_TRTGRAPH = TRTDIR + TRTFILENAME
 
     # Path to frozen non trt detection graph. This is the actual model that is used for the object detection.
     PATH_TO_FROZEN_GRAPH = 'data/' + MODEL_NAME + '/frozen_inference_graph.pb'
