@@ -254,7 +254,7 @@ def main(args):
             score_threshold=0.3,
             batch_size=1
         )
-
+        print("Build graph from checkpoints and config file")
         converter = trt.TrtGraphConverter(
             input_graph_def=frozen_graph,
             nodes_blacklist=['logits', 'classes']) #output nodes
