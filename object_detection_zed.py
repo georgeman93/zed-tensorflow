@@ -284,10 +284,10 @@ def main(args):
             # )
 
             with detection_graph.as_default():
-            with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
-                serialized_graph = fid.read()
-                graph_def.ParseFromString(serialized_graph)
-                tf.import_graph_def(graph_def, name='')
+                with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
+                    serialized_graph = fid.read()
+                    graph_def.ParseFromString(serialized_graph)
+                    tf.import_graph_def(graph_def, name='')
 
             print("Converting graph to trt graph")
             converter = trt.TrtGraphConverter(
