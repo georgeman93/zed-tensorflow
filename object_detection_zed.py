@@ -259,6 +259,7 @@ def main(args):
             input_graph_def=frozen_graph,
             nodes_blacklist=['logits', 'classes']) #output nodes
         trt_graph = converter.convert()
+        print("Graph converted trt graph")
 
         #print(output_names)
 
@@ -324,6 +325,7 @@ def main(args):
     category_index = label_map_util.create_category_index(categories)
 
     video = cv2.VideoWriter('video.avi',cv2.VideoWriter_fourcc(*'DIVX'),1,(width,height))
+    print("Video recorder initialized")
 
     # Detection
     with detection_graph.as_default():
