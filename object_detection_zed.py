@@ -33,7 +33,7 @@ from tf_trt_models.classification import download_classification_checkpoint
 from tf_trt_models.classification import build_classification_graph
 from tf_trt_models.detection import download_detection_model, build_detection_graph
 #import tensorflow.contrib.tensorrt as trt
-import tensorrt as trt
+from tensorflow.python.compiler.tensorrt import trt_convert as trt
 
 # TensorRT imports #5.1.6
 # from tftrt.examples.object_detection import download_model
@@ -186,6 +186,23 @@ def display_objects_distances(image_np, depth_np, num_detections, boxes_, classe
     return image_np
 
 
+def load_frozen_graph_from_file(filepath,graphdef):
+    with tf.gfile.GFile(filepath, 'rb') as fid:
+        serialized_graph = fid.read()
+        graphdef.ParseFromString(serialized_graph)
+        tf.import_graph_def(graphdef, name='')
+        return True
+
+def save_frozen_graph_to_file(dir,filename,graphdef):
+    # with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'wb') as fid:
+    #     serialized_graph = fid.read()
+    #     graphdef.ParseFromString(serialized_graph)
+    #     tf.import_graph_def(graphdef, name='')
+    #     return True
+
+    tf.train.write_graph(graphdef,dir,filename, False) #proto
+
+
 def main(args):
     svo_filepath = None
     if len(args) > 1:
@@ -202,9 +219,13 @@ def main(args):
 
     # What tensorRT model to download and load
     TRT_MODEL_NAME = 'ssd_mobilenet_v2_coco'
+    TRTDIR = 'data/' + TRT_MODEL_NAME
+    TRTFILENAME = '/frozen_inference_graph.pb'
+    PATH_TO_FROZEN_TRTGRAPH = DIR + FILENAME
 
-    # Path to frozen detection graph. This is the actual model that is used for the object detection.
+    # Path to frozen non trt detection graph. This is the actual model that is used for the object detection.
     PATH_TO_FROZEN_GRAPH = 'data/' + MODEL_NAME + '/frozen_inference_graph.pb'
+
 
     # Check if the model is already present
     if not os.path.isfile(PATH_TO_FROZEN_GRAPH):
@@ -245,71 +266,30 @@ def main(args):
                 tf.import_graph_def(od_graph_def, name='')
 
     else:
-        print("Loading model " + TRT_MODEL_NAME)
+        
+        print("Checking if trt graph already exists")
+        graph_def = tf.GraphDef()
+        if not load_frozen_graph_from_file(PATH_TO_FROZEN_TRTGRAPH,graph_def): #returns true if the pb file is found
 
-        config_path, checkpoint_path = download_detection_model(TRT_MODEL_NAME, 'data')
-        frozen_graph, input_names, output_names = build_detection_graph(
-            config=config_path,
-            checkpoint=checkpoint_path,
-            score_threshold=0.3,
-            batch_size=1
-        )
-        print("Build graph from checkpoints and config file")
-        converter = trt.TrtGraphConverter(
-            input_graph_def=frozen_graph,
-            nodes_blacklist=['logits', 'classes']) #output nodes
-        trt_graph = converter.convert()
-        print("Graph converted trt graph")
+            print("Loading model " + TRT_MODEL_NAME)
+            config_path, checkpoint_path = download_detection_model(TRT_MODEL_NAME, 'data')
+            print("Building graph from checkpoints and config file")
+            frozen_graph, input_names, output_names = build_detection_graph(
+                config=config_path,
+                checkpoint=checkpoint_path,
+                score_threshold=0.3,
+                batch_size=1
+            )
+            print("Convertign graph to trt graph")
+            converter = trt.TrtGraphConverter(
+                input_graph_def=frozen_graph,
+                nodes_blacklist=['logits', 'classes']) #output nodes
+            trt_graph = converter.convert()
+            print("Serializing and saving trt graph to file")
+            save_frozen_graph_to_file(TRTDIR,TRTFILENAME,trt_graph)
 
-        #print(output_names)
-
-        # trt_graph = trt.create_inference_graph(
-        #     input_graph_def=frozen_graph,
-        #     outputs=output_names,
-        #     max_batch_size=1,
-        #     max_workspace_size_bytes=1 << 25,
-        #     precision_mode='FP16',
-        #     minimum_segment_size=50
-        # )
-
-        # with detection_graph.as_default():
-        #     od_graph_def = tf.GraphDef()
-        #     with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
-        #         serialized_graph = fid.read()
-        #         od_graph_def.ParseFromString(serialized_graph)
-        #         for node in od_graph_def.node:
-        #             print(node.name)
-        #         trt_graph = trt.create_inference_graph(
-        #             input_graph_def=od_graph_def,
-        #             outputs=output_names,
-        #             max_batch_size=1,
-        #             max_workspace_size_bytes=1 << 25,
-        #             precision_mode='FP16',
-        #             minimum_segment_size=50
-        #         )
         tf.import_graph_def(trt_graph, name='')
-        #checkpoint_path = download_classification_checkpoint(TRT_MODEL_NAME)
-        # config_path, checkpoint_path = download_model(TRT_MODEL_NAME, output_dir='models')
-        # frozen_graph, input_names, output_names = build_classification_graph(
-        #     model=TRT_MODEL_NAME,
-        #     checkpoint=checkpoint_path,
-        #     num_classes=1001
-        # )
-        # trt_graph = optimize_model(
-        #     config_path=config_path, 
-        #     checkpoint_path=checkpoint_path,
-        #     use_trt=True,
-        #     precision_mode='FP16'
-        # )
-        # trt_graph = trt.create_inference_graph(
-        #     input_graph_def=frozen_graph,
-        #     outputs=output_names,
-        #     max_batch_size=1,
-        #     max_workspace_size_bytes=1 << 25,
-        #     precision_mode='FP16',
-        #     minimum_segment_size=50
-        # )
-        #tf.import_graph_def(trt_graph, name='')
+
 
     
 
