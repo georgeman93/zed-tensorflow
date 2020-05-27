@@ -187,6 +187,8 @@ def display_objects_distances(image_np, depth_np, num_detections, boxes_, classe
 
 
 def load_frozen_graph_from_file(filepath,graphdef):
+    if not os.path.exists(filepath):
+        return False
     with tf.gfile.GFile(filepath, 'rb') as fid:
         serialized_graph = fid.read()
         graphdef.ParseFromString(serialized_graph)
