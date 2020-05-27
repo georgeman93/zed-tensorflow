@@ -273,16 +273,23 @@ def main(args):
         graph_def = tf.GraphDef()
         if not load_frozen_graph_from_file(PATH_TO_FROZEN_TRTGRAPH,graph_def): #returns true if the pb file is found
 
-            print("Loading model " + TRT_MODEL_NAME)
-            config_path, checkpoint_path = download_detection_model(TRT_MODEL_NAME, 'data')
-            print("Building graph from checkpoints and config file")
-            frozen_graph, input_names, output_names = build_detection_graph(
-                config=config_path,
-                checkpoint=checkpoint_path,
-                score_threshold=0.3,
-                batch_size=1
-            )
-            print("Convertign graph to trt graph")
+            # print("Loading model " + TRT_MODEL_NAME)
+            # config_path, checkpoint_path = download_detection_model(TRT_MODEL_NAME, 'data')
+            # print("Building graph from checkpoints and config file")
+            # frozen_graph, input_names, output_names = build_detection_graph(
+            #     config=config_path,
+            #     checkpoint=checkpoint_path,
+            #     score_threshold=0.3,
+            #     batch_size=1
+            # )
+
+            with detection_graph.as_default():
+            with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
+                serialized_graph = fid.read()
+                graph_def.ParseFromString(serialized_graph)
+                tf.import_graph_def(graph_def, name='')
+
+            print("Converting graph to trt graph")
             converter = trt.TrtGraphConverter(
                 input_graph_def=frozen_graph,
                 nodes_blacklist=['logits', 'classes']) #output nodes
