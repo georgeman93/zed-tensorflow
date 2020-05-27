@@ -255,16 +255,21 @@ def main(args):
             batch_size=1
         )
 
+        converter = trt.TrtGraphConverter(
+            input_graph_def=frozen_graph,
+            nodes_blacklist=['logits', 'classes']) #output nodes
+        trt_graph = converter.convert()
+
         #print(output_names)
 
-        trt_graph = trt.create_inference_graph(
-            input_graph_def=frozen_graph,
-            outputs=output_names,
-            max_batch_size=1,
-            max_workspace_size_bytes=1 << 25,
-            precision_mode='FP16',
-            minimum_segment_size=50
-        )
+        # trt_graph = trt.create_inference_graph(
+        #     input_graph_def=frozen_graph,
+        #     outputs=output_names,
+        #     max_batch_size=1,
+        #     max_workspace_size_bytes=1 << 25,
+        #     precision_mode='FP16',
+        #     minimum_segment_size=50
+        # )
 
         # with detection_graph.as_default():
         #     od_graph_def = tf.GraphDef()
