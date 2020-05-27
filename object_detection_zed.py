@@ -13,8 +13,10 @@ import math
 import tarfile
 import os.path
 
+
 from threading import Lock, Thread
 from time import sleep
+
 
 import cv2
 
@@ -39,7 +41,7 @@ from tensorflow.python.compiler.tensorrt import trt_convert as trt
 # from tftrt.examples.object_detection import download_model
 # from tftrt.examples.object_detection import optimize_model
 
-
+# gary
 
 def load_image_into_numpy_array(image):
     ar = image.get_data()
@@ -202,7 +204,7 @@ def save_frozen_graph_to_file(dir,filename,graphdef):
     #     tf.import_graph_def(graphdef, name='')
     #     return True
 
-    tf.train.write_graph(graphdef,dir,filename, False) #proto
+    tf.io.write_graph(graphdef,'/tmp/my-model',filename, False) #proto
 
 
 def main(args):
@@ -221,12 +223,12 @@ def main(args):
 
     # What tensorRT model to download and load
     TRT_MODEL_NAME = 'ssd_mobilenet_v2_coco'
-    TRTDIR = 'data/' + TRT_MODEL_NAME
-    TRTFILENAME = '/frozen_inference_graph.pb'
+    TRTDIR = './data/' + TRT_MODEL_NAME
+    TRTFILENAME = 'frozen_inference_graph.pb'
     PATH_TO_FROZEN_TRTGRAPH = TRTDIR + TRTFILENAME
 
     # Path to frozen non trt detection graph. This is the actual model that is used for the object detection.
-    PATH_TO_FROZEN_GRAPH = 'data/' + MODEL_NAME + '/frozen_inference_graph.pb'
+    PATH_TO_FROZEN_GRAPH = 'data/' + TRT_MODEL_NAME + '/frozen_inference_graph.pb'
 
 
     # Check if the model is already present
@@ -249,6 +251,16 @@ def main(args):
     PATH_TO_LABELS = os.path.join('data', 'mscoco_label_map.pbtxt')
     NUM_CLASSES = 90
 
+    INPUT_NAME='image_tensor'
+    BOXES_NAME='detection_boxes'
+    CLASSES_NAME='detection_classes'
+    SCORES_NAME='detection_scores'
+    MASKS_NAME='detection_masks'
+    NUM_DETECTIONS_NAME='num_detections'
+
+    output_names = [BOXES_NAME, CLASSES_NAME, SCORES_NAME, NUM_DETECTIONS_NAME]
+    input_names =[INPUT_NAME]
+
     # Start the capture thread with the ZED input
     print("Starting the ZED")
     capture_thread = Thread(target=capture_thread_func, kwargs={'svo_filepath': svo_filepath})
@@ -258,45 +270,53 @@ def main(args):
     global image_np_global, depth_np_global, new_data, exit_signal
 
     detection_graph = tf.Graph()
-    if not usingTensorRTOptimisation: # Load a (frozen) Tensorflow model into memory.
-        print("Loading model " + MODEL_NAME)
-        with detection_graph.as_default():
+    with detection_graph.as_default():
+        if not usingTensorRTOptimisation: # Load a (frozen) Tensorflow model into memory.
+            print("Loading model " + MODEL_NAME)
             od_graph_def = tf.GraphDef()
             with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
 
-    else:
-        
-        print("Checking if trt graph already exists")
-        graph_def = tf.GraphDef()
-        if not load_frozen_graph_from_file(PATH_TO_FROZEN_TRTGRAPH,graph_def): #returns true if the pb file is found
+        else:
+            
+            print("Checking if trt graph already exists")
+            graph_def = tf.GraphDef()
+            if not load_frozen_graph_from_file(PATH_TO_FROZEN_GRAPH,graph_def): #returns true if the pb file is found
 
-            # print("Loading model " + TRT_MODEL_NAME)
-            # config_path, checkpoint_path = download_detection_model(TRT_MODEL_NAME, 'data')
-            # print("Building graph from checkpoints and config file")
-            # frozen_graph, input_names, output_names = build_detection_graph(
-            #     config=config_path,
-            #     checkpoint=checkpoint_path,
-            #     score_threshold=0.3,
-            #     batch_size=1
-            # )
+                print("File not found, loading model " + TRT_MODEL_NAME)
+                config_path, checkpoint_path = download_detection_model(TRT_MODEL_NAME, 'data')
+                print("Building graph from checkpoints and config file")
+                graph_def, input_names, output_names = build_detection_graph(
+                    config=config_path,
+                    checkpoint=checkpoint_path,
+                    score_threshold=0.3,
+                    batch_size=1,
+                    force_nms_cpu=False
+                )
+                print("Saving model")
+                save_frozen_graph_to_file(TRTDIR,TRTFILENAME,graph_def)
+                # print("Loading model " + MODEL_NAME)
+                # with detection_graph.as_default():
+                #     with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
+                #         serialized_graph = fid.read()
+                #         graph_def.ParseFromString(serialized_graph)
 
-            with detection_graph.as_default():
-                with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
-                    serialized_graph = fid.read()
-                    frozen_graph.ParseFromString(serialized_graph)
 
-            print("Converting graph to trt graph")
-            converter = trt.TrtGraphConverter(
-                input_graph_def=frozen_graph,
-                nodes_blacklist=['logits', 'classes']) #output nodes
-            trt_graph = converter.convert()
-            print("Serializing and saving trt graph to file")
-            save_frozen_graph_to_file(TRTDIR,TRTFILENAME,trt_graph)
 
-        tf.import_graph_def(trt_graph, name='')
+                print("Converting graph to trt graph")
+                converter = trt.TrtGraphConverter(
+                    input_graph_def=graph_def,
+                    nodes_blacklist=output_names+input_names) #output nodes
+
+                trt_graph = converter.convert()
+
+                print("Serializing and saving trt graph to file")
+                save_frozen_graph_to_file(TRTDIR,TRTFILENAME,trt_graph)
+            print("loaded")
+            tf.import_graph_def(graph_def, name='')
+            print("imported")
 
 
     
@@ -317,7 +337,10 @@ def main(args):
 
     # Detection
     with detection_graph.as_default():
+        print(detection_graph.get_operations())
         with tf.Session(config=config, graph=detection_graph) as sess:
+            # writer = tf.summary.FileWriter('logs', tf.compat.v1.get_default_graph())
+            # sleep(20)
 
             while not exit_signal:
                 try:
@@ -331,14 +354,15 @@ def main(args):
 
                         image_np_expanded = np.expand_dims(image_np, axis=0)
 
-                        image_tensor = detection_graph.get_tensor_by_name(input_names[0] + ':0')
+
+                        image_tensor = tf.compat.v1.get_default_graph().get_tensor_by_name(INPUT_NAME+":0")
                         # Each box represents a part of the image where a particular object was detected.
-                        boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
+                        boxes = tf.compat.v1.get_default_graph().get_tensor_by_name(BOXES_NAME+":0")
                         # Each score represent how level of confidence for each of the objects.
                         # Score is shown on the result image, together with the class label.
-                        scores = detection_graph.get_tensor_by_name('detection_scores:0')
-                        classes = detection_graph.get_tensor_by_name('detection_classes:0')
-                        num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+                        scores = tf.compat.v1.get_default_graph().get_tensor_by_name(SCORES_NAME+":0")
+                        classes = tf.compat.v1.get_default_graph().get_tensor_by_name(CLASSES_NAME+":0")
+                        num_detections = tf.compat.v1.get_default_graph().get_tensor_by_name(NUM_DETECTIONS_NAME+":0")
                         # Actual detection.
                         (boxes, scores, classes, num_detections) = sess.run(
                             [boxes, scores, classes, num_detections],
@@ -369,12 +393,14 @@ def main(args):
                 except KeyboardInterrupt:
                     print("saving video")
                     video.release()
+                    writer.close()
 
             sess.close()
             video.release()
 
     exit_signal = True
     capture_thread.join()
+    writer.close()
 
 
 if __name__ == '__main__':
